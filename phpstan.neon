@@ -1,0 +1,12 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - src
+    excludePaths:
+        analyse:
+            - src/Laravel/Models/*
+            - src/Laravel/HasFaydaIdentity.php
+    treatPhpDocTypesAsCertain: false

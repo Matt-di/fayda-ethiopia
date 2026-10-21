@@ -17,6 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - JSON and signed-JWT userinfo support.
 - Typed DTOs: `FaydaUser`, `Address`, `TokenResponse`, `LoginResult`.
 - Laravel service provider, facade, routes, controller, and events.
-- Optional guard login and Eloquent user resolver.
-- Publishable config and `fayda_identities` migration.
+- Optional guard login and custom user resolver.
+- Publishable config.
 - Unit and Laravel feature test suites, PHPStan, Pint, and CI.

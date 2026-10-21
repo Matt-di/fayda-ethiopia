@@ -25,12 +25,6 @@ abstract class TestCase extends Orchestra
         $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
         $app['config']->set('session.driver', 'array');
         $app['config']->set('cache.default', 'array');
-        $app['config']->set('database.default', 'testing');
-        $app['config']->set('database.connections.testing', [
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
-        ]);
 
         $app['config']->set('fayda.issuer', 'https://idp.test');
         $app['config']->set('fayda.discovery.enabled', false);
@@ -52,6 +46,5 @@ abstract class TestCase extends Orchestra
         $app['config']->set('fayda.routes.enabled', true);
         $app['config']->set('fayda.routes.prefix', 'auth/fayda');
         $app['config']->set('fayda.auth.login', false);
-        $app['config']->set('fayda.persistence.enabled', false);
     }
 }

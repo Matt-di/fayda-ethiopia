@@ -121,20 +121,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Optional login and persistence
+    | Optional guard login and user resolution
     |--------------------------------------------------------------------------
     */
     'auth' => [
         'login' => (bool) env('FAYDA_AUTH_LOGIN', false),
         'guard' => env('FAYDA_AUTH_GUARD', 'web'),
         'redirect_after_login' => env('FAYDA_REDIRECT_AFTER_LOGIN', '/'),
-    ],
-
-    'persistence' => [
-        'enabled' => (bool) env('FAYDA_PERSISTENCE', false),
-        'user_model' => env('FAYDA_USER_MODEL', 'App\\Models\\User'),
-        'table' => env('FAYDA_IDENTITIES_TABLE', 'fayda_identities'),
-        'create_users' => (bool) env('FAYDA_CREATE_USERS', false),
     ],
 
     // Optional class-string implementing Mattdi\Fayda\Laravel\Auth\FaydaUserResolver.

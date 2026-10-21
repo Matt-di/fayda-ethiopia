@@ -10,7 +10,6 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use Mattdi\Fayda\Core\Contracts\StateStore;
 use Mattdi\Fayda\FaydaClient;
-use Mattdi\Fayda\Laravel\Auth\EloquentUserResolver;
 use Mattdi\Fayda\Laravel\Auth\FaydaUserResolver;
 use Mattdi\Fayda\Laravel\Auth\NullUserResolver;
 
@@ -66,10 +65,6 @@ final class FaydaServiceProvider extends ServiceProvider
                 }
             }
 
-            if ((bool) $app['config']->get('fayda.persistence.enabled', false)) {
-                return $app->make(EloquentUserResolver::class);
-            }
-
             return new NullUserResolver;
         });
     }
@@ -79,14 +74,6 @@ final class FaydaServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../../config/fayda.php' => config_path('fayda.php'),
         ], 'fayda-config');
-
-        $this->publishes([
-            __DIR__.'/../../database/migrations/2026_01_01_000000_create_fayda_identities_table.php' => database_path('migrations/2026_01_01_000000_create_fayda_identities_table.php'),
-        ], 'fayda-migrations');
-
-        if ((bool) $this->app['config']->get('fayda.persistence.enabled', false)) {
-            $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
-        }
 
         if ((bool) $this->app['config']->get('fayda.routes.enabled', true)) {
             $this->loadRoutesFrom(__DIR__.'/../../routes/fayda.php');

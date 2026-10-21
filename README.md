@@ -13,7 +13,7 @@ It implements the relying-party flow used by VeriFayda 2.0:
 - **JWKS signature verification** of the `id_token` and signed `userinfo`
 - `iss`, `aud`/`azp`, `exp`, `iat`, `nbf`, `nonce`, and `state` validation
 - Typed `FaydaUser`, `TokenResponse`, and `LoginResult` objects
-- Optional Laravel routes, events, user resolver, guard login, and Eloquent persistence
+- Optional Laravel routes, events, custom user resolver, and guard login
 
 Works in plain PHP, Laravel 11/12, and any PSR-18 compatible project.
 
@@ -26,6 +26,8 @@ Works in plain PHP, Laravel 11/12, and any PSR-18 compatible project.
 - Composer
 - A Fayda/eSignet client ID and RSA private key
 - A registered redirect URI
+
+No database table or user model is required.
 
 Laravel is optional. The core package does not require any Laravel component.
 
@@ -65,7 +67,7 @@ FAYDA_REDIRECT_URI=https://your-app.test/auth/fayda/callback
 # FAYDA_KEY_ID=your-key-id
 ```
 
-Everything else has a sensible default. Endpoints are discovered from `FAYDA_ISSUER`; scopes, ACR values, claims, PKCE, routes, login, and persistence can be overridden only when you need to. See the [configuration reference](#configuration-reference).
+Everything else has a sensible default. Endpoints are discovered from `FAYDA_ISSUER`; scopes, ACR values, claims, PKCE, routes, and login can be overridden only when you need to. See the [configuration reference](#configuration-reference).
 
 `FAYDA_PRIVATE_JWK_BASE64` is the usual Fayda onboarding format. If your key is stored differently, provide **one** of these instead:
 
@@ -183,38 +185,7 @@ final class AppFaydaResolver implements FaydaUserResolver
 FAYDA_USER_RESOLVER=App\Services\AppFaydaResolver
 ```
 
-### 7. Optional Eloquent persistence
-
-```dotenv
-FAYDA_PERSISTENCE=true
-FAYDA_CREATE_USERS=true
-FAYDA_USER_MODEL=App\Models\User
-```
-
-```bash
-php artisan vendor:publish --tag=fayda-migrations
-php artisan migrate
-```
-
-Add the trait to your user model if you want the relationship:
-
-```php
-use Mattdi\Fayda\Laravel\HasFaydaIdentity;
-
-final class User extends Authenticatable
-{
-    use HasFaydaIdentity;
-}
-```
-
-The default resolver:
-
-- always resolves an existing `fayda_identities` row by `subject` + `client_id`
-- links an existing user by **verified** email when available
-- creates a user only when `FAYDA_CREATE_USERS=true`
-- returns `null` otherwise, so your application can handle registration/approval
-
-The `fayda_identities.user_id` column is a `unsignedBigInteger`. Adjust the published migration if your user model uses UUIDs.
+The package does **not** create users, tables, or migrations. Your resolver owns persistence and registration rules. You can also skip the resolver entirely and handle the verified `FaydaUser` from the callback yourself.
 
 ---
 
@@ -327,10 +298,6 @@ At minimum, set `FAYDA_ISSUER`, `FAYDA_CLIENT_ID`, one private-key source, and `
 | `auth.login` | `FAYDA_AUTH_LOGIN` | `false` | Log the resolved user into the guard |
 | `auth.guard` | `FAYDA_AUTH_GUARD` | `web` | Guard used for login |
 | `auth.redirect_after_login` | `FAYDA_REDIRECT_AFTER_LOGIN` | `/` | Fallback redirect |
-| `persistence.enabled` | `FAYDA_PERSISTENCE` | `false` | Enable the Eloquent resolver |
-| `persistence.user_model` | `FAYDA_USER_MODEL` | `App\Models\User` | User model class |
-| `persistence.table` | `FAYDA_IDENTITIES_TABLE` | `fayda_identities` | Identity table |
-| `persistence.create_users` | `FAYDA_CREATE_USERS` | `false` | Create users automatically |
 | `user_resolver` | `FAYDA_USER_RESOLVER` | `null` | Custom `FaydaUserResolver` class |
 
 </details>

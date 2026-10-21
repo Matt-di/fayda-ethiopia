@@ -8,17 +8,6 @@ $claims = is_string($claims) && trim($claims) !== '' ? json_decode($claims, true
 return [
     /*
     |--------------------------------------------------------------------------
-    | Environment
-    |--------------------------------------------------------------------------
-    |
-    | "sandbox" or "production". This value is informational; the endpoints and
-    | credentials below determine where requests are actually sent.
-    |
-    */
-    'env' => env('FAYDA_ENV', 'sandbox'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Issuer and discovery
     |--------------------------------------------------------------------------
     |
@@ -150,6 +139,4 @@ return [
 
     // Optional class-string implementing Mattdi\Fayda\Laravel\Auth\FaydaUserResolver.
     'user_resolver' => env('FAYDA_USER_RESOLVER'),
-
-    'log_channel' => env('FAYDA_LOG_CHANNEL'),
 ];

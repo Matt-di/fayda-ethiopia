@@ -53,44 +53,21 @@ php artisan vendor:publish --tag=fayda-config
 
 ### 2. Configure `.env`
 
+Only these values are required:
+
 ```dotenv
-FAYDA_ENV=sandbox
-
-# Issuer + discovery (recommended), or set every endpoint explicitly
 FAYDA_ISSUER=https://esignet.sandbox.example
-FAYDA_AUTHORIZATION_ENDPOINT=
-FAYDA_TOKEN_ENDPOINT=
-FAYDA_USERINFO_ENDPOINT=
-FAYDA_JWKS_URI=
-
-# Client credentials (private_key_jwt)
 FAYDA_CLIENT_ID=your-client-id
-FAYDA_CLIENT_ASSERTION_TYPE=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
-
-# Provide ONE private key source.
-# Base64 encoded private JWK (Fayda onboarding format):
-FAYDA_PRIVATE_JWK_BASE64=
-# Or a PEM file:
-# FAYDA_PRIVATE_KEY_PATH=/secure/fayda-private.pem
-# Or a raw PEM string:
-# FAYDA_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----..."
-# Or JWK JSON:
-# FAYDA_PRIVATE_JWK='{"kty":"RSA",...}'
-FAYDA_KEY_ID=your-key-id
-
+FAYDA_PRIVATE_JWK_BASE64=your-base64-encoded-private-jwk
 FAYDA_REDIRECT_URI=https://your-app.test/auth/fayda/callback
-FAYDA_SCOPES="openid profile email"
-FAYDA_ACR_VALUES="mosip:idp:acr:generated-code mosip:idp:acr:linked-wallet"
-FAYDA_UI_LOCALES=en
-FAYDA_PKCE=true
 
-# Laravel bridge
-FAYDA_ROUTES=true
-FAYDA_AUTH_LOGIN=false
-FAYDA_PERSISTENCE=false
+# Optional, when your JWKS publishes a kid:
+# FAYDA_KEY_ID=your-key-id
 ```
 
-Private key sources are checked in this order:
+Everything else has a sensible default. Endpoints are discovered from `FAYDA_ISSUER`; scopes, ACR values, claims, PKCE, routes, login, and persistence can be overridden only when you need to. See the [configuration reference](#configuration-reference).
+
+`FAYDA_PRIVATE_JWK_BASE64` is the usual Fayda onboarding format. If your key is stored differently, provide **one** of these instead:
 
 1. `FAYDA_PRIVATE_KEY` (raw PEM)
 2. `FAYDA_PRIVATE_KEY_PATH` (PEM file)
@@ -311,6 +288,11 @@ $fayda = new FaydaClient(
 
 ## Configuration reference
 
+At minimum, set `FAYDA_ISSUER`, `FAYDA_CLIENT_ID`, one private-key source, and `FAYDA_REDIRECT_URI`. Every other key below is optional.
+
+<details>
+<summary>Show all configuration keys</summary>
+
 | Key | Env | Default | Description |
 |---|---|---|---|
 | `issuer` | `FAYDA_ISSUER` | `null` | OIDC issuer, used for discovery and `iss` validation |
@@ -350,6 +332,8 @@ $fayda = new FaydaClient(
 | `persistence.table` | `FAYDA_IDENTITIES_TABLE` | `fayda_identities` | Identity table |
 | `persistence.create_users` | `FAYDA_CREATE_USERS` | `false` | Create users automatically |
 | `user_resolver` | `FAYDA_USER_RESOLVER` | `null` | Custom `FaydaUserResolver` class |
+
+</details>
 
 ---
 

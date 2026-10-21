@@ -8,9 +8,9 @@ on:
 jobs:
   core:
     name: Plain PHP core (no Laravel)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -20,25 +20,31 @@ jobs:
       - name: Install production dependencies only
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress
 
+      - name: Audit production dependencies
+        run: composer audit --no-dev
+
       - name: Verify the core autoloads without Laravel
         run: php -r "require 'vendor/autoload.php'; echo Mattdi\Fayda\Core\Pkce::verifier();"
 
   tests:
     name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
-        laravel: ['11', '12']
+        php: ['8.2', '8.3', '8.4', '8.5']
+        laravel: ['12', '13']
         include:
-          - laravel: '11'
-            testbench: '^9.0'
           - laravel: '12'
             testbench: '^10.0'
+          - laravel: '13'
+            testbench: '^11.0'
+        exclude:
+          - php: '8.2'
+            laravel: '13'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -47,13 +53,6 @@ jobs:
 
       - name: Pin the Laravel/Testbench version
         run: composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-update --no-interaction
-
-      # Laravel 11 is EOL and Composer 2.9+ blocks all of its releases because
-      # of known framework advisories. Keep this compatibility-only job running
-      # without allowing advisory blocking to mask a real code failure.
-      - name: Allow EOL Laravel 11 framework advisories (compatibility job only)
-        if: matrix.laravel == '11'
-        run: composer config audit.block-insecure false
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --no-progress

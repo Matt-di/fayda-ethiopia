@@ -1,7 +1,7 @@
 # Fayda Ethiopia for PHP & Laravel
 
 [![PHP](https://img.shields.io/badge/php-%5E8.2-blue)](https://www.php.net/)
-[![Laravel](https://img.shields.io/badge/laravel-11%20%7C%2012-red)](https://laravel.com/)
+[![Laravel](https://img.shields.io/badge/laravel-12%20%7C%2013-red)](https://laravel.com/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Fayda (eSignet / MOSIP) OpenID Connect integration with a framework-agnostic core and a first-class Laravel bridge.
@@ -15,7 +15,7 @@ It implements the relying-party flow used by VeriFayda 2.0:
 - Typed `FaydaUser`, `TokenResponse`, and `LoginResult` objects
 - Optional Laravel routes, events, custom user resolver, and guard login
 
-Works in plain PHP, Laravel 11/12, and any PSR-18 compatible project.
+Works in plain PHP, Laravel 12/13, and any PSR-18 compatible project.
 
 ---
 
@@ -24,6 +24,7 @@ Works in plain PHP, Laravel 11/12, and any PSR-18 compatible project.
 - PHP 8.2 or newer
 - `ext-json`, `ext-openssl`
 - Composer
+- Laravel 12 or 13 for the Laravel bridge (optional)
 - A Fayda/eSignet client ID and RSA private key
 - A registered redirect URI
 
@@ -31,7 +32,14 @@ No database table or user model is required.
 
 Laravel is optional. The core package does not require any Laravel component.
 
-> **Laravel 11 is end-of-life.** It still works with this package and is covered by a compatibility job, but Composer 2.9+ may block its installation because of known framework security advisories. Use Laravel 12 (or newer) for production applications.
+> **Supported Laravel versions**
+>
+> | Laravel | PHP |
+> |---|---|
+> | 12 | 8.2–8.5 |
+> | 13 | 8.3–8.5 |
+>
+> Laravel 13 requires PHP 8.3 or newer. CI tests both versions.
 
 ---
 

@@ -40,6 +40,14 @@ it('accepts a JSON userinfo response', function (): void {
     expect($claims['name'])->toBe('Abebe Bikila');
 });
 
+it('rejects a JSON userinfo response without a subject', function (): void {
+    $http = new FakeHttpClient([
+        faydaJsonResponse(['name' => 'Abebe Bikila']),
+    ]);
+
+    faydaUserInfoClient($http)->fetch('access-1');
+})->throws(UserInfoException::class, 'subject');
+
 it('rejects a userinfo JWT with a bad signature', function (): void {
     $jwt = faydaSign(faydaUserInfoClaims());
     $tampered = substr($jwt, 0, -4).'abcd';

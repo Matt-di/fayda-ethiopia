@@ -41,6 +41,7 @@ final class FaydaController extends Controller
                 state: $this->stringInput($request, 'state'),
                 error: $this->stringInput($request, 'error'),
                 errorDescription: $this->stringInput($request, 'error_description'),
+                iss: $this->stringInput($request, 'iss'),
             );
 
             $authenticatable = $resolver->resolve($result->user);

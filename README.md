@@ -11,7 +11,7 @@ It implements the relying-party flow used by VeriFayda 2.0:
 - Authorization Code flow with **PKCE (S256)**
 - **`private_key_jwt`** client authentication (RS256)
 - **JWKS signature verification** of the `id_token` and signed `userinfo`
-- `iss`, `aud`/`azp`, `exp`, `iat`, `nbf`, `nonce`, and `state` validation
+- Strict JWT validation (`iss`, `aud`/`azp`, `exp`, `iat`, `nbf`, `nonce`, and `at_hash` when present)
 - Typed `FaydaUser`, `TokenResponse`, and `LoginResult` objects
 - Optional Laravel routes, events, custom user resolver, and guard login
 
@@ -105,6 +105,8 @@ The package registers these routes by default:
 
 The callback route is excluded from CSRF protection because eSignet may deliver it as a cross-site `form_post`. The one-time `state` value protects the callback.
 
+If you use `form_post`, Laravel’s default `SameSite=Lax` session cookie is **not** sent on cross-site POST requests. Set `SESSION_SAME_SITE=none` and `SESSION_SECURE_COOKIE=true`, or use `response_mode=query` when the provider allows it. Otherwise the callback will fail with an invalid-state error.
+
 Disable the built-in routes with `FAYDA_ROUTES=false` and use the client directly.
 
 ### 5. Handle the callback
@@ -145,6 +147,7 @@ Route::get('/auth/fayda/callback', function (Request $request) {
         state: $request->input('state'),
         error: $request->input('error'),
         errorDescription: $request->input('error_description'),
+        iss: $request->input('iss'),
     );
 
     $user = $result->user;   // verified Fayda identity
@@ -172,10 +175,19 @@ final class AppFaydaResolver implements FaydaUserResolver
 {
     public function resolve(FaydaUser $user): ?Authenticatable
     {
-        // Find or create your user. Return null to skip login.
+        if ($user->sub === null) {
+            return null;
+        }
+
+        // `sub` is the stable Fayda identifier. Add a `fayda_sub` column to
+        // your users table (or use your own identity-link table).
         return User::query()->firstOrCreate(
-            ['email' => $user->email],
-            ['name' => $user->name, 'password' => bcrypt(str()->random(40))],
+            ['fayda_sub' => $user->sub],
+            [
+                'name' => $user->name,
+                'email' => $user->emailVerified === true ? $user->email : null,
+                'password' => bcrypt(str()->random(40)),
+            ],
         );
     }
 }
@@ -184,6 +196,8 @@ final class AppFaydaResolver implements FaydaUserResolver
 ```dotenv
 FAYDA_USER_RESOLVER=App\Services\AppFaydaResolver
 ```
+
+Use `sub` as the stable key. Only link an existing account by email when `emailVerified === true`; trusting an unverified email can allow account takeover.
 
 The package does **not** create users, tables, or migrations. Your resolver owns persistence and registration rules. You can also skip the resolver entirely and handle the verified `FaydaUser` from the callback yourself.
 
@@ -220,7 +234,11 @@ header('Location: '.$fayda->authorizationUrl());
 exit;
 
 // callback.php
-$result = $fayda->authenticate($_GET['code'] ?? '', $_GET['state'] ?? null);
+$result = $fayda->authenticate(
+    code: $_GET['code'] ?? '',
+    state: $_GET['state'] ?? null,
+    iss: $_GET['iss'] ?? null,
+);
 
 $user = $result->user;
 
@@ -315,6 +333,9 @@ This package deliberately fixes the gaps common in sample integrations:
 - **PKCE S256** with a cryptographically random verifier stored server-side.
 - **Short-lived client assertions** (maximum 5 minutes) with `jti`, `iss`, `sub`, `aud`, `iat`, and `exp`.
 - **Audience/authorized-party checks** (`aud` and `azp`).
+- **Mandatory `exp`, `iat`, and `iss` claims** on ID tokens and signed userinfo.
+- **Access-token binding** through `at_hash` when the provider includes it.
+- **Issuer and subject binding** across the callback `iss`, ID token, and userinfo `sub`.
 - **Session regeneration** on login.
 - **No tokens in URLs** and no token/claim logging by default.
 

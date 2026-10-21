@@ -22,7 +22,8 @@ final class JwtVerifier
     /**
      * Verify a JWT and return its claims.
      *
-     * Supported options: issuer, audience, nonce, subject, require_sub.
+     * Supported options: issuer, audience, nonce, subject, require_sub,
+     * access_token (for at_hash validation).
      *
      * @param  array<string, mixed>  $options
      * @return array<string, mixed>
@@ -92,12 +93,23 @@ final class JwtVerifier
      */
     private function assertClaims(array $claims, array $options): void
     {
+        $this->requireNumericClaim($claims, 'exp');
+        $this->requireNumericClaim($claims, 'iat');
+
+        $now = JWT::$timestamp ?? time();
+
+        if ((float) $claims['iat'] > $now + $this->clockSkew) {
+            throw InvalidTokenException::claim('The "iat" claim is in the future.');
+        }
+
+        if (! isset($claims['iss']) || ! is_string($claims['iss']) || $claims['iss'] === '') {
+            throw InvalidTokenException::claim('The token does not contain an "iss" claim.');
+        }
+
         $issuer = $this->stringOption($options, 'issuer') ?? $this->issuer;
 
-        if ($issuer !== null) {
-            if (! isset($claims['iss']) || ! is_string($claims['iss']) || ! hash_equals($issuer, $claims['iss'])) {
-                throw InvalidTokenException::claim('The "iss" claim does not match the configured issuer.');
-            }
+        if ($issuer !== null && ! hash_equals($issuer, $claims['iss'])) {
+            throw InvalidTokenException::claim('The "iss" claim does not match the configured issuer.');
         }
 
         $audience = $this->stringOption($options, 'audience') ?? $this->audience;
@@ -114,6 +126,8 @@ final class JwtVerifier
             }
         }
 
+        $this->assertAccessTokenHash($claims, $options);
+
         $subject = $this->stringOption($options, 'subject');
 
         if ($subject !== null) {
@@ -124,6 +138,44 @@ final class JwtVerifier
 
         if (($options['require_sub'] ?? false) === true && (! isset($claims['sub']) || $claims['sub'] === '')) {
             throw InvalidTokenException::claim('The token does not contain a "sub" claim.');
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function requireNumericClaim(array $claims, string $claim): void
+    {
+        if (! isset($claims[$claim]) || (! is_int($claims[$claim]) && ! is_float($claims[$claim]))) {
+            throw InvalidTokenException::claim('The "'.$claim.'" claim is missing or invalid.');
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     * @param  array<string, mixed>  $options
+     */
+    private function assertAccessTokenHash(array $claims, array $options): void
+    {
+        if (! array_key_exists('at_hash', $claims)) {
+            return;
+        }
+
+        if (! is_string($claims['at_hash']) || $claims['at_hash'] === '') {
+            throw InvalidTokenException::claim('The "at_hash" claim is invalid.');
+        }
+
+        $accessToken = $this->stringOption($options, 'access_token');
+
+        if ($accessToken === null) {
+            throw InvalidTokenException::claim('The "at_hash" claim cannot be verified without an access token.');
+        }
+
+        // Only RS256 tokens are accepted, so at_hash always uses SHA-256.
+        $expected = Pkce::base64Url(substr(hash('sha256', $accessToken, true), 0, 16));
+
+        if (! hash_equals($expected, $claims['at_hash'])) {
+            throw InvalidTokenException::claim('The "at_hash" claim does not match the access token.');
         }
     }
 

@@ -84,6 +84,10 @@ final class UserInfoClient
             throw UserInfoException::invalidResponse('The response must be a JSON object.');
         }
 
+        if (! isset($data['sub']) || ! is_string($data['sub']) || $data['sub'] === '') {
+            throw UserInfoException::invalidResponse('The userinfo response does not contain a subject identifier.');
+        }
+
         return $data;
     }
 

@@ -51,6 +51,60 @@ it('rejects an expired token', function (): void {
     faydaVerifier($http)->verify($token, ['nonce' => 'nonce-1']);
 })->throws(InvalidTokenException::class, 'expired');
 
+it('requires exp and iat claims', function (string $claim): void {
+    $http = new FakeHttpClient([faydaJwksResponse()]);
+    $claims = faydaIdTokenClaims('nonce-1');
+    unset($claims[$claim]);
+    $token = faydaSign($claims);
+
+    faydaVerifier($http)->verify($token, ['nonce' => 'nonce-1']);
+})->with(['exp', 'iat'])
+    ->throws(InvalidTokenException::class, 'missing or invalid');
+
+it('requires an issuer claim', function (): void {
+    $http = new FakeHttpClient([faydaJwksResponse()]);
+    $claims = faydaIdTokenClaims('nonce-1');
+    unset($claims['iss']);
+    $token = faydaSign($claims);
+
+    faydaVerifier($http)->verify($token, ['nonce' => 'nonce-1']);
+})->throws(InvalidTokenException::class, 'iss');
+
+it('verifies a valid at_hash claim', function (): void {
+    $http = new FakeHttpClient([faydaJwksResponse()]);
+    $token = faydaSign(faydaIdTokenClaims('nonce-1', [
+        'at_hash' => faydaAccessTokenHash('access-1'),
+    ]));
+
+    $claims = faydaVerifier($http)->verify($token, [
+        'nonce' => 'nonce-1',
+        'access_token' => 'access-1',
+    ]);
+
+    expect($claims['at_hash'])->toBe(faydaAccessTokenHash('access-1'));
+});
+
+it('rejects an at_hash claim that does not match the access token', function (): void {
+    $http = new FakeHttpClient([faydaJwksResponse()]);
+    $token = faydaSign(faydaIdTokenClaims('nonce-1', [
+        'at_hash' => faydaAccessTokenHash('access-1'),
+    ]));
+
+    faydaVerifier($http)->verify($token, [
+        'nonce' => 'nonce-1',
+        'access_token' => 'access-2',
+    ]);
+})->throws(InvalidTokenException::class, 'at_hash');
+
+it('rejects an at_hash claim when the access token is unavailable', function (): void {
+    $http = new FakeHttpClient([faydaJwksResponse()]);
+    $token = faydaSign(faydaIdTokenClaims('nonce-1', [
+        'at_hash' => faydaAccessTokenHash('access-1'),
+    ]));
+
+    faydaVerifier($http)->verify($token, ['nonce' => 'nonce-1']);
+})->throws(InvalidTokenException::class, 'at_hash');
+
 it('rejects a tampered signature', function (): void {
     $http = new FakeHttpClient([faydaJwksResponse()]);
     $token = faydaSign(faydaIdTokenClaims('nonce-1'));

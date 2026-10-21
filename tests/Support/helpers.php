@@ -7,6 +7,7 @@ use GuzzleHttp\Psr7\Response;
 use Mattdi\Fayda\Core\Dto\FaydaUser;
 use Mattdi\Fayda\Core\JwksProvider;
 use Mattdi\Fayda\Core\JwtVerifier;
+use Mattdi\Fayda\Core\Pkce;
 use Mattdi\Fayda\Tests\Support\FakeHttpClient;
 
 /**
@@ -89,6 +90,11 @@ function faydaSign(array $claims, string $kid = 'test-key'): string
     return JWT::encode($claims, faydaPrivateKey(), 'RS256', $kid);
 }
 
+function faydaAccessTokenHash(string $accessToken): string
+{
+    return Pkce::base64Url(substr(hash('sha256', $accessToken, true), 0, 16));
+}
+
 /**
  * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
@@ -113,10 +119,14 @@ function faydaIdTokenClaims(string $nonce, array $overrides = []): array
  */
 function faydaUserInfoClaims(array $overrides = []): array
 {
+    $now = time();
+
     return array_replace([
         'iss' => 'https://idp.test',
         'aud' => 'client-1',
         'sub' => 'fayda-subject-1',
+        'iat' => $now,
+        'exp' => $now + 300,
         'name' => 'Abebe Bikila',
         'given_name' => 'Abebe',
         'family_name' => 'Bikila',

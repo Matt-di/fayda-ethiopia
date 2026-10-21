@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use GuzzleHttp\Psr7\HttpFactory;
+use Mattdi\Fayda\Core\Exceptions\AuthenticationFailedException;
 use Mattdi\Fayda\Core\Exceptions\ConfigurationException;
 use Mattdi\Fayda\Core\Exceptions\InvalidStateException;
 use Mattdi\Fayda\Core\Exceptions\InvalidTokenException;
@@ -36,7 +37,9 @@ it('completes the authorization code flow and verifies both tokens', function ()
     $nonce = $store->states[$request->state]['nonce'];
     $verifier = $store->states[$request->state]['code_verifier'];
 
-    $idToken = faydaSign(faydaIdTokenClaims($nonce));
+    $idToken = faydaSign(faydaIdTokenClaims($nonce, [
+        'at_hash' => faydaAccessTokenHash('access-1'),
+    ]));
     $userInfo = faydaSign(faydaUserInfoClaims());
 
     $http->queue = [
@@ -51,7 +54,7 @@ it('completes the authorization code flow and verifies both tokens', function ()
         faydaJwtResponse($userInfo),
     ];
 
-    $result = $client->authenticate('code-1', $request->state);
+    $result = $client->authenticate('code-1', $request->state, iss: 'https://idp.test');
 
     expect($result->user->sub)->toBe('fayda-subject-1')
         ->and($result->user->name)->toBe('Abebe Bikila')
@@ -68,6 +71,37 @@ it('completes the authorization code flow and verifies both tokens', function ()
         ->and($params['code_verifier'])->toBe($verifier);
 });
 
+it('rejects an at_hash claim that does not match the access token', function (): void {
+    $store = new InMemoryStateStore;
+    $http = new FakeHttpClient([]);
+    $client = faydaFlowClient($http, $store);
+
+    $request = $client->authorizationRequest();
+    $nonce = $store->states[$request->state]['nonce'];
+
+    $http->queue = [
+        faydaJsonResponse([
+            'access_token' => 'access-1',
+            'id_token' => faydaSign(faydaIdTokenClaims($nonce, [
+                'at_hash' => faydaAccessTokenHash('different-access-token'),
+            ])),
+        ]),
+        faydaJwksResponse(),
+    ];
+
+    $client->authenticate('code-1', $request->state);
+})->throws(InvalidTokenException::class, 'at_hash');
+
+it('rejects an authorization response issuer that does not match the configured issuer', function (): void {
+    $store = new InMemoryStateStore;
+    $http = new FakeHttpClient([]);
+    $client = faydaFlowClient($http, $store);
+
+    $request = $client->authorizationRequest();
+
+    $client->authenticate('code-1', $request->state, iss: 'https://other-idp.test');
+})->throws(AuthenticationFailedException::class, 'issuer');
+
 it('rejects a replayed state value', function (): void {
     $store = new InMemoryStateStore;
     $http = new FakeHttpClient([]);
@@ -79,7 +113,6 @@ it('rejects a replayed state value', function (): void {
 
     $http->queue = [
         faydaJsonResponse(['access_token' => 'access-1', 'id_token' => $idToken]),
-        faydaJwksResponse(),
         faydaJwksResponse(),
         faydaJwtResponse(faydaSign(faydaUserInfoClaims())),
     ];

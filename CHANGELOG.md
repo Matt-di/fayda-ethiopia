@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Authorization Code flow with PKCE S256, state, and nonce.
 - `private_key_jwt` client authentication with RSA JWK or PEM keys.
 - JWKS discovery, caching, key rotation, and signature verification.
-- ID token validation (`iss`, `aud`/`azp`, `exp`, `iat`, `nbf`, `nonce`).
+- ID token validation (`iss`, `aud`/`azp`, `exp`, `iat`, `nbf`, `nonce`, and `at_hash`).
+- Callback issuer (RFC 9207) and userinfo subject binding.
 - JSON and signed-JWT userinfo support.
 - Typed DTOs: `FaydaUser`, `Address`, `TokenResponse`, `LoginResult`.
 - Laravel service provider, facade, routes, controller, and events.

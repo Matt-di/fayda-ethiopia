@@ -113,8 +113,9 @@ final class FaydaClient
         ?string $state = null,
         ?string $error = null,
         ?string $errorDescription = null,
+        ?string $iss = null,
     ): FaydaUser {
-        return $this->authenticate($code, $state, $error, $errorDescription)->user;
+        return $this->authenticate($code, $state, $error, $errorDescription, $iss)->user;
     }
 
     /**
@@ -125,6 +126,7 @@ final class FaydaClient
         ?string $state = null,
         ?string $error = null,
         ?string $errorDescription = null,
+        ?string $iss = null,
     ): LoginResult {
         if ($error !== null && $error !== '') {
             if ($state !== null && $state !== '') {
@@ -148,6 +150,12 @@ final class FaydaClient
             throw new InvalidStateException('The state parameter is invalid or has expired.');
         }
 
+        $expectedIssuer = $this->issuer();
+
+        if ($iss !== null && $iss !== '' && $expectedIssuer !== null && ! hash_equals($expectedIssuer, $iss)) {
+            throw new AuthenticationFailedException('The authorization response issuer does not match the configured issuer.');
+        }
+
         $codeVerifier = isset($stored['code_verifier']) && is_string($stored['code_verifier'])
             ? $stored['code_verifier']
             : null;
@@ -165,15 +173,25 @@ final class FaydaClient
         if ($token->idToken !== null) {
             $idTokenClaims = $this->jwtVerifier()->verify($token->idToken, [
                 'nonce' => $nonce,
+                'access_token' => $token->accessToken,
+                'require_sub' => true,
             ]);
         } elseif ($this->requiresIdToken()) {
             throw InvalidTokenException::missingIdToken();
         }
 
+        if ($iss !== null && $iss !== '' && isset($idTokenClaims['iss']) && is_string($idTokenClaims['iss']) && ! hash_equals($idTokenClaims['iss'], $iss)) {
+            throw InvalidTokenException::claim('The authorization response issuer does not match the id_token.');
+        }
+
         $userInfoClaims = [];
 
         if ((bool) ($this->config['fetch_userinfo'] ?? true)) {
-            $userInfoClaims = $this->userInfoClient()->fetch($token->accessToken);
+            $userInfoIssuer = isset($idTokenClaims['iss']) && is_string($idTokenClaims['iss'])
+                ? $idTokenClaims['iss']
+                : null;
+
+            $userInfoClaims = $this->userInfoClient($userInfoIssuer)->fetch($token->accessToken);
         }
 
         if (
@@ -282,13 +300,13 @@ final class FaydaClient
         );
     }
 
-    private function userInfoClient(): UserInfoClient
+    private function userInfoClient(?string $issuer = null): UserInfoClient
     {
         return new UserInfoClient(
             $this->endpoints()['userinfo'],
             $this->http,
             $this->jwtVerifier(),
-            $this->issuer(),
+            $issuer ?? $this->issuer(),
             $this->clientId(),
             $this->requestFactory,
         );

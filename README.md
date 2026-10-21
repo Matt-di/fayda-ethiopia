@@ -356,6 +356,8 @@ Recommendations:
 - Only request ACR values and claims your relying party is approved for.
 - Store refresh tokens encrypted if you persist them.
 
+Report security issues privately using the process in [SECURITY.md](SECURITY.md).
+
 ---
 
 ## Sandbox checklist

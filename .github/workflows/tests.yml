@@ -48,6 +48,13 @@ jobs:
       - name: Pin the Laravel/Testbench version
         run: composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-update --no-interaction
 
+      # Laravel 11 is EOL and Composer 2.9+ blocks all of its releases because
+      # of known framework advisories. Keep this compatibility-only job running
+      # without allowing advisory blocking to mask a real code failure.
+      - name: Allow EOL Laravel 11 framework advisories (compatibility job only)
+        if: matrix.laravel == '11'
+        run: composer config audit.block-insecure false
+
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --no-progress
 

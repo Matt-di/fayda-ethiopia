@@ -29,6 +29,8 @@ Works in plain PHP, Laravel 11/12, and any PSR-18 compatible project.
 
 Laravel is optional. The core package does not require any Laravel component.
 
+> **Laravel 11 is end-of-life.** It still works with this package and is covered by a compatibility job, but Composer 2.9+ may block its installation because of known framework security advisories. Use Laravel 12 (or newer) for production applications.
+
 ---
 
 ## Installation
